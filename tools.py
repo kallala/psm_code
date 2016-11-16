@@ -3,6 +3,10 @@ import scipy as sp
 import math  as math
 import cmath as cmath
 
+def multiplication_list(n,List):
+	for i in range(len(List)):
+		List[i]=n*List[i]
+	return List
 
 def prod_vec(k,v):
 	r=np.zeros(3,dtype=complex)
