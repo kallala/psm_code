@@ -71,20 +71,47 @@ class Simulation :  # class simulation solveur EM 1D pseudo-specral
 		Z=np.asarray(Z)
 		Z=2*math.pi/(self.L_z-0)*Z
 	        self.mesh_k=np.meshgrid(X,Y,Z)
+	def fft_champs_3d (self,E):
+		nx=self.n_x
+		ny=self.n_y
+		nz=self.n_z
+		Etilde=E
+		for d in range(3):
+			for i in range(nx):
+                        	for j in range(ny):
+                        		Z=E[i,j,:,d]
+					Etilde[i,j,:,d] = np.fft.fft(Z)
+                	for j in range(ny):
+                        	for k in range(nz):
+                                	X=Etilde[:,j,k,d]
+                                	Etilde[:,j,k,d] = np.fft.fft(X)         
+                	for k in range(nz):
+                        	for i in range(nx):
+                                	Y=Etilde[i,:,k,d]
+		              		Etilde[i,:,k,d] = np.fft.fft(Y)
+		return (Etilde)	
 	def Initial_Conditions(self,E_0_x,E_0_y,E_0_z,mod,phi_x,phi_y,phi_z):
 		c=3.*math.pow(10,8)
 		w=2*math.pi*c*mod/self.L_x
 		vecteur_onde=w/c
 		for i in range(self.n_x):
+			x=self.mesh[0][0,i,0]
+			print " x = %f " %x
+			E1=E_0_y*cmath.exp(complex(0,-vecteur_onde*x+phi_y))
+			print " E 1 = %f + i %f " %( E1.real ,E1.imag)
+			E2=E_0_z*cmath.exp(complex(0,-vecteur_onde*x+phi_z))
+			print " E 2 = %f + i %f "%( E2.real,E2.imag)
 			for j in range(self.n_y):
 				for k in range( self.n_z):
-					E1=E_0_y*cmath.exp(complex(0,-vecteur_onde*self.mesh[0][j,i,k]+phi_y))
 					self.E_old[i,j,k,1]=E1
-					E2=E_0_z*cmath.exp(complex(0,-vecteur_onde*self.mesh[0][i,i,k]+phi_z))
+					self.E_old[i,j,k,0]=0
 					self.E_old[i,j,k,2]=E2
-		Etilde_old=fft_champs_3d(self.E_old)
-		Btilde_old=fft_champs_3d(self.B_old)
 		
+		Etilde_old=elf.ft_champs_3d(self.E_old)
+		Btilde_old=self.fft_champs_3d(self.B_old)
+	
+
+
 
 	def Time_Integration_PSM(self):
 		print "test %d " %self.n_x		

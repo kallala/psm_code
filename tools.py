@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import math  as math
 import cmath as cmath
+import matplotlib.pyplot as plt
 
 
 def prod_vec(k,v): #calcule le produit scalaire de deux vecteurs
@@ -29,20 +30,24 @@ def prod_vec_champs_totaux(K,E):   #calcule le produit scalaire sur tout le mail
 				Etilde[i,j,k,:]=prod_vec_champs(K,E,i,j,k)
 	return(Etilde)	
 def fft_champs_3d (E):
-	Etilde = E
+	P=E
+	Etilde = P 
  	nx     = E.shape[0]
 	ny     = E.shape[1]
 	nz     = E.shape[2]
 	for d in range(3):
 		for i in range(nx):
 			for j in range(ny):
-				Etilde[i,j,:,d] = np.fft.fft(E[i,j,:,d])
+				Z=Etilde[i,j,:,d]
+				Etilde[i,j,:,d] = np.fft.fft(Z)
 		for j in range(ny):
 			for k in range(nz):
-				Etilde[:,j,k,d] = np.fft.fft(Etilde[:,j,k,d])		
-
+				X=Etilde[:,j,k,d]
+				Etilde[:,j,k,d] = np.fft.fft(X)		
+		for k in range(nz):
 			for i in range(nx):
-				Etilde[i,:,k,d] = np.fft.fft(Etilde[i,:,k,d])
+				Y=Etilde[i,:,k,d]
+				Etilde[i,:,k,d] = np.fft.fft(Y)
 	return(Etilde)	
 		
 	
