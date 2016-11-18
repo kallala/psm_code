@@ -15,9 +15,10 @@ def prod_vec(k,v): #calcule le produit scalaire de deux vecteurs
 def prod_vec_champs(K,E,i,j,k): #calcule le  produit scalaire sur un point du maillage entre le maillage spectral et le champs E
 	k_=np.zeros(3)
 	e=k_
+	
 	for ii in range(3):
 		k_[ii]=K[ii][j,i,k]
-		e[ii]=E[i,j,k,ii]
+		e[ii]=E[ii,i,j,k]
 	return(prod_vec(k,v))
 def prod_vec_champs_totaux(K,E):   #calcule le produit scalaire sur tout le maillage entre E et le maillage spectral
 	Etilde=E
@@ -30,24 +31,23 @@ def prod_vec_champs_totaux(K,E):   #calcule le produit scalaire sur tout le mail
 				Etilde[i,j,k,:]=prod_vec_champs(K,E,i,j,k)
 	return(Etilde)	
 def fft_champs_3d (E):
-	P=E
-	Etilde = P 
+	Etilde = E 
  	nx     = E.shape[0]
 	ny     = E.shape[1]
 	nz     = E.shape[2]
 	for d in range(3):
 		for i in range(nx):
 			for j in range(ny):
-				Z=Etilde[i,j,:,d]
-				Etilde[i,j,:,d] = np.fft.fft(Z)
+				Z=Etilde[d,i,j,:]
+				Etilde[d,i,j,:] = np.fft.fft(Z)
 		for j in range(ny):
 			for k in range(nz):
-				X=Etilde[:,j,k,d]
-				Etilde[:,j,k,d] = np.fft.fft(X)		
+				X=Etilde[d,:,j,k]
+				Etilde[d,:,j,k] = np.fft.fft(X)		
 		for k in range(nz):
 			for i in range(nx):
-				Y=Etilde[i,:,k,d]
-				Etilde[i,:,k,d] = np.fft.fft(Y)
+				Y=Etilde[d,i,:,k]
+				Etilde[d,i,:,k] = np.fft.fft(Y)
 	return(Etilde)	
 		
 	
@@ -68,23 +68,3 @@ def ifft_champs_3d(Etilde):
                         for i in range(nx):
                                 E[i,:,k,d] = np.fft.ifft(E[i,:,k,d])
         return(E)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

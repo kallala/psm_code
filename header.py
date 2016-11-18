@@ -14,17 +14,17 @@ class Simulation :  # class simulation solveur EM 1D pseudo-specral
 		self.L_z     = Lz
 		self.d_t     = dt
  
-		self.E_n     = np.zeros((nx,ny,nz,3),dtype=complex)
-		self.Etilde_n= np.zeros((nx,ny,nz,3),dtype=complex)
+		self.E_n     = np.zeros((3,nx,ny,nz),dtype=complex)
+		self.Etilde_n= np.zeros((3,nx,ny,nz),dtype=complex)
 
-		self.E_old   = np.zeros((nx,ny,nz,3),dtype=complex)
-		self.Etilde_old = np.zeros((nx,ny,nz,3),dtype=complex)
+		self.E_old   = np.zeros((3,nx,ny,nz),dtype=complex)
+		self.Etilde_old = np.zeros((3,nx,ny,nz),dtype=complex)
 
-		self.B_n     = np.zeros((nx,ny,nz,3),dtype=complex)
-		self.Btilde_n= np.zeros((nx,ny,nz,3),dtype=complex)
+		self.B_n     = np.zeros((3,nx,ny,nz),dtype=complex)
+		self.Btilde_n= np.zeros((3,nx,ny,nz),dtype=complex)
 	
-		self.B_old   = np.zeros((nx,ny,nz,3),dtype=complex)
-		self.Btilde_old = np.zeros((nx,ny,nz,3),dtype=complex)	
+		self.B_old   = np.zeros((3,nx,ny,nz),dtype=complex)
+		self.Btilde_old = np.zeros((3,nx,ny,nz),dtype=complex)	
 		self.d_x     = (Lx-0)/nx
 	   	self.d_y     = (Ly-0)/ny
 		self.d_z     = (Lz-0)/nz
@@ -48,7 +48,7 @@ class Simulation :  # class simulation solveur EM 1D pseudo-specral
 		Z=np.asarray(Z)
 		Z=self.d_z*Z
 
-		self.mesh=np.meshgrid(X,Y,Z)
+		[self.mesh_x,self.mesh_y,self.mesh_z]=np.mgrid[0:self.L_x:self.d_x,0:self.L_y:self.d_y,0:self.L_y:self.d_y]
 	
 		
 		#construct spectral mesh
@@ -71,44 +71,48 @@ class Simulation :  # class simulation solveur EM 1D pseudo-specral
 		Z=np.asarray(Z)
 		Z=2*math.pi/(self.L_z-0)*Z
 	        self.mesh_k=np.meshgrid(X,Y,Z)
-	def fft_champs_3d (self,E):
-		nx=self.n_x
-		ny=self.n_y
-		nz=self.n_z
-		Etilde=E
-		for d in range(3):
-			for i in range(nx):
-                        	for j in range(ny):
-                        		Z=E[i,j,:,d]
-					Etilde[i,j,:,d] = np.fft.fft(Z)
-                	for j in range(ny):
-                        	for k in range(nz):
-                                	X=Etilde[:,j,k,d]
-                                	Etilde[:,j,k,d] = np.fft.fft(X)         
-                	for k in range(nz):
-                        	for i in range(nx):
-                                	Y=Etilde[i,:,k,d]
-		              		Etilde[i,:,k,d] = np.fft.fft(Y)
-		return (Etilde)	
+	#	def fft_champs_3d (self,E):
+	#		nx=self.n_x
+	#		ny=self.n_y
+	#		nz=self.n_z
+	#		Etilde=E
+	#		for d in range(3):
+	#			for i in range(nx):
+	#                       	for j in range(ny):
+	#                      		Z=Etilde[d,i,j,:]
+	#					Etilde[i,j,:,d] = np.fft.fft(Z)
+        		      #	for j in range(ny):
+                #       	 	for k in range(nz):
+                #                	X=Etilde[:,j,k,d]
+                #                	Etilde[:,j,k,d] = np.fft.fft(X)         
+                #	for k in range(nz):
+                #        	for i in range(nx):
+                #                	Y=Etilde[i,:,k,d]
+		#              		Etilde[i,:,k,d] = np.fft.fft(Y)
+	#		return (Etilde)	
 	def Initial_Conditions(self,E_0_x,E_0_y,E_0_z,mod,phi_x,phi_y,phi_z):
 		c=3.*math.pow(10,8)
 		w=2*math.pi*c*mod/self.L_x
 		vecteur_onde=w/c
-		for i in range(self.n_x):
-			x=self.mesh[0][0,i,0]
-			print " x = %f " %x
-			E1=E_0_y*cmath.exp(complex(0,-vecteur_onde*x+phi_y))
-			print " E 1 = %f + i %f " %( E1.real ,E1.imag)
-			E2=E_0_z*cmath.exp(complex(0,-vecteur_onde*x+phi_z))
-			print " E 2 = %f + i %f "%( E2.real,E2.imag)
-			for j in range(self.n_y):
-				for k in range( self.n_z):
-					self.E_old[i,j,k,1]=E1
-					self.E_old[i,j,k,0]=0
-					self.E_old[i,j,k,2]=E2
-		
-		Etilde_old=elf.ft_champs_3d(self.E_old)
-		Btilde_old=self.fft_champs_3d(self.B_old)
+	#	for i in range(self.n_x):
+	#		x=self.mesh[0][0,i,0]
+	#		print " x = %f " %x
+	#		E1=E_0_y*cmath.exp(complex(0,-vecteur_onde*x+phi_y))
+	#		print " E 1 = %f + i %f " %( E1.real ,E1.imag)
+	#		E2=E_0_z*cmath.exp(complex(0,-vecteur_onde*x+phi_z))
+	#		print " E 2 = %f + i %f "%( E2.real,E2.imag)
+	#		for j in range(self.n_y):
+	#			for k in range( self.n_z):
+	#				self.E_old[i,j,k,1]=E1
+	#				self.E_old[i,j,k,0]=0
+	#				self.E_old[i,j,k,2]=E2
+		self.E_old[0,:,:,:]=0
+		self.E_old[1,:,:,:]=E_0_y*np.cos(-vecteur_onde*self.mesh_x+phi_y)
+		self.E_old[2,:,:,:]=E_0_z*np.cos(-vecteur_onde*self.mesh_x+phi_z)
+		EE=self.E_old
+		BB=self.B_old		
+	#	Etilde_old=self.fft_champs_3d(EE)
+	#	Btilde_old=self.fft_champs_3d(BB)
 	
 
 
