@@ -1,13 +1,17 @@
 N=64;
 x=zeros(N,1);
 e=zeros(N,N);
-#for k=0:127
-#  for j=0:N-1
-#    e(k+1,j+1)=exp(-2*i*pi*k*j/N);
-#  end
-#end
-
-
+for k=0:N-1
+  for j=0:N-1
+    e(k+1,j+1)=exp(-2*i*pi*k*j/N);
+  end
+end
+e1=0*e
+for j=0:N-1
+	for k=0:N-1
+		e1(k+1,j+1)=1./N*exp(2*i*j*k*pi/N)
+	end
+end
 a = -2;
 b = 2;
 
