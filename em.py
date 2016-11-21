@@ -18,12 +18,11 @@ def prod_scalaire(k,E,direction,nx):
 c=3*math.pow(10,8)
 c=1.
 Lx=1.
-nx=256
+nx=32
 dx=Lx/nx
-nsteps=15000
+nsteps=15
 
-
-dt= 2*2.652582384864922e-04
+dt= 2.652582384864922e-04
 cfl=c*dt/dx
 print"cfl= %f "%cfl
 X=np.arange(nx)*Lx*dx
@@ -68,11 +67,6 @@ Btilde_old=np.fft.fft(B_old)
 Etilde_n=0*Etilde_old
 Btilde_n=0*Btilde_old
 
-
-
-
-
-
 x=range(nx/2)
 rx=range(-nx/2+1,0,1)
 x.append(0)
@@ -84,12 +78,12 @@ K_mesh=2*math.pi/Lx*np.asarray(x)
 #K_mesh=2*1./Lx*math.pi*K_mesh
 j=complex(0,1)
 cx=2*math.sin(w*dt/2)
-#cx=w*dt
+cx=w*dt
 for i in range(nsteps):
 	if i%1000==0:
 		print "i= %d " %i
 	rotB=j*prod_scalaire(K_mesh,Btilde_old,2,nx)
-	Etilde_n=cx*(c*c)/w*rotB+Etilde_old
+	Etilde_n=cx/w*(c*c)rotB+Etilde_old
 	rotE=j*prod_scalaire(K_mesh,Etilde_n,1,nx)
 	Btilde_n=-cx/w*rotE+Btilde_old
 	Etilde_old=Etilde_n
@@ -101,7 +95,7 @@ B_n=np.fft.ifft(Btilde_n)
 Solution=np.zeros(nx)
 phase=w*nsteps*dt
 for i in range (nx):
-	Solution[i]=E0*math.cos(phase+k*X[i])
+	Solution[i]=E0*math.cos(-phase-k*X[i])
 #for i in range(nx):     
 #	Diag[i,i]=K_mesh[i]
 #Diag=np.asmatrix(Diag)
