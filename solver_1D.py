@@ -32,7 +32,7 @@ j=complex(0,1)
 #E=fft_champs_3d(S.E_old)
 #A=j*ifft_champs_3d(prod_vec_champs_totaux(S.mesh_KK,fft_champs_3d(S.E_old)))
 #AA=-j*prod_vec_champs_totaux(K,S.E_old)
-nsteps=100
+nsteps=1500
 cx=2*math.sin(w*dt/2)
 #cx=w*dt
 #S.Time_Integration_PSM(nsteps)
@@ -41,19 +41,19 @@ for i in range(nsteps):
 		print "i= %d " %i
 	rotB=j*prod_vec_champs_totaux(S.mesh_KK,S.Btilde_old) #rot B sur le domaine spectral
 	#print " verificaiton %f %f "%(np.sum((rotB*S.Btilde_old).real),np.sum((rotB*S.Btilde_old).imag))
-	S.Etilde_n=S.Etilde_old+cx*c*c*rotB
+	S.Etilde_n=S.Etilde_old+cx/w*c*c*rotB
 	rotE=j*prod_vec_champs_totaux(S.mesh_KK,S.Etilde_n)
-	S.Btilde_n=-cx*rotE+S.Btilde_old
+	S.Btilde_n=-cx/w*rotE+S.Btilde_old
 	S.Btilde_old=np.copy(S.Btilde_n)
 	S.Etilde_old=np.copy(S.Etilde_n)
 S.E_n=ifft_champs_3d(S.Etilde_n)
 S.B_n=ifft_champs_3d(S.Btilde_n)
 x=np.arange(nx)
 x=1./nx*x
-plt.plot(x,S.E_n[1,:,0,0],"b")
+plt.plot(x,S.E_n[0,:,0,0],"b")
 plt.grid(True)
 Sa=np.zeros(nx)
 for i in range(nx):
 	Sa[i]=10.*np.cos(vecteur_onde*x[i]+w*dt*nsteps)
-plt.plot(x,Sa,"r")
+plt.plot(x,Sa,"ro")
 plt.show()

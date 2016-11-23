@@ -118,12 +118,13 @@ class Simulation :  # class simulation solveur EM 1D pseudo-specral
 		for i in range(nx):
 			for j in range(ny):
 				for k in range(nz):
-					self.E_old[0,i,j,k]=0
-					self.E_old[1,i,j,k]=E_0_y*cmath.exp(complex(0,-vecteur_onde*self.mesh_x[i,j,k]))
-					self.E_old[2,i,j,k]=E_0_z*cmath.exp(complex(0,-vecteur_onde*self.mesh_x[i,j,k]))
+					self.E_old[1,i,j,k]=E_0_y*cmath.exp(complex(0,-vecteur_onde*(self.mesh_y[i,j,k]+self.mesh_x[i,j,k])))
+					self.E_old[2,i,j,k]=E_0_z*cmath.exp(complex(0,-vecteur_onde*(self.mesh_x[i,j,k]+self.mesh_y[i,j,k])))
 					self.B_old[0,i,j,k]=0
-					self.B_old[1,i,j,k]=B_0_y*cmath.exp(complex(0,-vecteur_onde*self.mesh_x[i,j,k]))
-                  		        self.B_old[2,i,j,k]=B_0_z*cmath.exp(complex(0,-vecteur_onde*self.mesh_x[i,j,k]))
+					self.B_old[1,i,j,k]=B_0_y*cmath.exp(complex(0,-vecteur_onde*(self.mesh_y[i,j,k]+self.mesh_x[i,j,k])))
+                  		        self.B_old[2,i,j,k]=B_0_z*cmath.exp(complex(0,-vecteur_onde*(self.mesh_y[i,j,k]+self.mesh_x[i,j,k])))
+					self.B_old[0,i,j,k]=np.copy(-self.B_old[1,i,j,k])
+					self.E_old[0,i,j,k]=np.copy(-self.E_old[1,i,j,k])
 		self.Etilde_old=fft_champs_3d(self.E_old)
 		self.Btilde_old=fft_champs_3d(self.B_old)
 	
