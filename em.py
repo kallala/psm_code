@@ -1,16 +1,17 @@
-import numpy as np
 import scipy as sp
 import math  as math
 import cmath as cmath
 import matplotlib.pyplot as plt
+import numpy as np
 from mpi4py import MPI
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 name = MPI.Get_processor_name()
+comm = MPI.COMM_WORLD
 
-
-def prod_scalaire(k,E,direction,nx):
-	a=np.zeros(nx,dtype=complex)
+def prod_scalaire(k,E,direction):
+	nx=E.shape[0]
+	a=0*E
 	if(direction==1):#ex^ey
 		for i in range(nx):
 			a[i]=k[i]*E[i]
@@ -24,20 +25,21 @@ c=3*math.pow(10,8)
 c=1.
 Lx=1.
 nx=1024
-ngard_cells=32
+ngard_cells=128
 dx=Lx/nx
 nsteps=150
 local_coord=np.zeros(nx/(size))
 nx_loc_central=nx/size
 nx_loc_tot=nx/size+2*ngard_cells
-if rank ==0:
-	nx_loc_tot-=ngard_cells
-if rank ==size-1:
-	nx_loc_tot-=ngard_cells
+
 a_loc=max(0,(rank*nx/size-ngard_cells)*dx)
-local_index=range(max(rank*nx/size-ngard_cells,0),min((rank+1)/size+ngard_cells,nx),1)
-for i in local_index:
-	local_coord[i]=a_loc+dx*i
+p=(rank*nx/size-ngard_cells)%nx
+q=((rank+1)*nx/size+ngard_cells)%nx
+local_coord=np.arange(p,q+nx,1)%nx
+local_coord=dx*local_coord
+#for i in range(local_coord.shape[0]):
+#	print "je suis le process %d et coord i = %f"%(rank,local_coord[i])
+
 dt= 2.652582384864922e-05
 if (rank==0):
 	cfl=c*dt/dx
@@ -59,9 +61,9 @@ B_old=0*E_old
 #		Tf1[i,j]=1./nx*cmath.exp(complex(0,2*math.pi*i*j/float(nx)))
 #Tf=np.asmatrix(Tf)
 #Tf1=np.asmatrix(Tf1)
-for i in local_index:
-	E_old[i]=cmath.exp(complex(0,-k*(a_loc+i*dx)))
-	B_old[i]=cmath.exp(complex(0,-k*(a_loc+i*dx)))
+for i in range(ngard_cells,ngard_cells+nx/size,1):
+	E_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
+	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
 E_old=E0*E_old
 
@@ -79,19 +81,14 @@ B_n=0*B_old
 Etilde_old=np.fft.fft(E_old)
 Btilde_old=np.fft.fft(B_old)
 
-Etilde_n=0*Etilde_old
-Btilde_n=0*Btilde_old
+Etilde_n=np.copy(Etilde_old)
+Btilde_n=np.copy(Btilde_old)
 
 x=range(nx_loc_tot/2)
 rx=range(-nx_loc_tot/2+1,0,1)
 x.append(0)
 x.extend(rx)
-local_size=Lx/size+2*ngard_cells*dx
-if rank==0:
-	local_size=local_size-ngard_cells*dx
-if rank==size-1:
-	local_size=local_size-ngard_cells*dx
-	
+local_size=Lx*(1./size+2.*ngard_cells/nx)
 K_mesh=2*math.pi/(local_size)*np.asarray(x)
 
 #K_mesh=np.arange(nx)
@@ -100,33 +97,94 @@ K_mesh=2*math.pi/(local_size)*np.asarray(x)
 j=complex(0,1)
 cx=2*math.sin(w*dt/2)
 cx=w*dt
+rank_back=(rank-1)%size
+rank_front=(rank+1)%size
+npa=ngard_cells+nx/size
+index_to_send_to_back=np.arange(ngard_cells)
+index_to_send_to_front=np.arange(nx/size+ngard_cells,nx/size+2*ngard_cells,1)
+
 for i in range(nsteps):
 	if i%1000==0:
 		print "i= %d " %i
-	rotB=j*prod_scalaire(K_mesh,Btilde_old,2,nx_loc_tot)
-	Etilde_n=cx/w*(c*c)*rotB+Etilde_old
-	rotE=j*prod_scalaire(K_mesh,Etilde_n,1,nx_loc_tot)
-	Btilde_n=-cx/w*rotE+Btilde_old
-	Etilde_old=Etilde_n
-	Btilde_old=Btilde_n
-E_n=np.fft.ifft(Etilde_n)
-B_n=np.fft.ifft(Btilde_n)
+	rotB=j*prod_scalaire(K_mesh,Btilde_n,2)
+	Etilde_n=cx/w*(c*c)*rotB+Etilde_n
+	rotE=j*prod_scalaire(K_mesh,Etilde_n,1)
+	Btilde_n=-cx/w*rotE+Btilde_n
+	E_n=np.fft.ifft(Etilde_n)
+	B_n=np.fft.ifft(Btilde_n)
+	E_to_send_to_front=E_n[index_to_send_to_front]
+	B_to_send_to_front=B_n[index_to_send_to_front]
+	Buff_front=np.append(E_to_send_to_front,B_to_send_to_front)
+	E_to_send_to_back=E_n[index_to_send_to_back]
+	B_to_send_to_back=E_n[index_to_send_to_back]
+	Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
+	comm.Isend(Buff_front,rank_front,0)
+	comm.Isend(Buff_back,rank_back,1)
+	rcv_f=np.zeros(2*ngard_cells)
+	rcv_b=np.zeros(2*ngard_cells)
+	comm.Irecv(rcv_f,rank_front,0)
+	comm.Irecv(rcv_b,rank_back,1)
+	comm.Barrier()
+	for ind in range(ngard_cells):
+		E_n[ngard_cells+ind]+=rcv_b[ind]
+		B_n[ngard_cells+ind]+=rcv_b[ngard_cells+ind]
+		E_n[nx/size+ind]+=rcv_f[ind]
+		B_n[nx/size+ind]+=rcv_f[ngard_cells+ind]
+		E_n[ind]=0.
+		B_n[ind]=0.
+		E_n[nx/size+ngard_cells+ind]=0.
+		E_n[nx/size+ngard_cells+ind]=0.
+	Etilde_n=np.fft.fft(E_n)
+	Btilde_n=np.fft.fft(B_n)
+	comm.Barrier()
+true_coord=np.arange(nx/size)+ngard_cells
+E_n=E_n[true_coord]
+B_n=B_n[true_coord]
+data2=comm.gather(E_n,0)
 
+print"je suis le proc %d"%rank
+#Final_loc_E=np.zeros(nx,dtype=complex)
+#for i in range(E_n.size):
+#	Final_loc_E[nx/size*rank+i]=E_n[i]
+#Final_glob_E=np.zeros(nx)
+#plt.plot((rank+1)*Final_loc_E)
+#plt.show()
+#comm.Reduce(Final_loc_E,Final_glob_E,op=MPI.SUM,root=0)
+if rank==0:
+	E_field=np.zeros(nx,dtype=complex)
+print"je suis ici  le proc %d"%rank
+comm.Barrier()
+
+if rank==0:
+	for k in range(nx/size):
+			for h in range(size):
+				E_field[k+h*nx/size]=data2[h][k]
+	#	E_field[k]=E_n[k]
+	#	E_field[k+2*nx/size]=A[k]
+	#	E_field[k+nx/size]=B[k]
+	#	E_field[k+3*nx/size]=C[k]
 #Diag=np.zeros((nx,nx))  
-Solution=np.zeros(nx)
-phase=w*nsteps*dt
-for i in range (nx):
-	Solution[i]=E0*math.cos(-phase-k*X[i])
+#Solution=np.zeros(nx)
+#phase=w*nsteps*dt
+k=w/c
+if rank == 0:
+	Solution=np.zeros(nx,dtype=complex)
+	phase=w*dt*nsteps
+	for i in range (nx):
+		Solution[i]=E0*math.cos(-phase-k*X[i])
 #for i in range(nx):     
 #	Diag[i,i]=K_mesh[i]
 #Diag=np.asmatrix(Diag)
 
-print "phase initiale exacte %f"%math.acos(math.cos(phase))
-print "phase initiale simulee %f"%math.acos((1./E0*E_n[0]).real)
-plt.grid(True)
-#plt.plot(Solution,'bo')
-plt.plot(E_n,'r')
-plt.show()
+#print "phase initiale exacte %f"%math.acos(math.cos(phase))
+#print "phase initiale simulee %f"%math.acos((1./E0*E_n[0]).real)
+	plt.plot(Solution,'bo')
+comm.Barrier()
+if rank ==0:
+	plt.grid(True)
+	plt.plot(E_field,'r')
+	plt.show()
+
 #resolution des eq de maxwell en 1D 
 #l onde se propage suivant x 
 #E est porte par y 
