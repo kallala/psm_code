@@ -27,7 +27,7 @@ Lx=1.
 nx=1024
 ngard_cells=128
 dx=Lx/nx
-nsteps=150
+nsteps=1200
 local_coord=np.zeros(nx/(size))
 nx_loc_central=nx/size
 nx_loc_tot=nx/size+2*ngard_cells
@@ -45,7 +45,7 @@ if (rank==0):
 	cfl=c*dt/dx
 	print"cfl= %f "%cfl
 X=np.arange(nx)*Lx*dx
-mode=7
+mode=3
 w=2*math.pi*c*mode/Lx
 k=w/c
 E0=100.
@@ -61,12 +61,13 @@ B_old=0*E_old
 #		Tf1[i,j]=1./nx*cmath.exp(complex(0,2*math.pi*i*j/float(nx)))
 #Tf=np.asmatrix(Tf)
 #Tf1=np.asmatrix(Tf1)
-for i in range(ngard_cells,ngard_cells+nx/size,1):
+for i in range(-ngard_cells,ngard_cells+nx/size,1):
 	E_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
 E_old=E0*E_old
-
+#plt.plot(E_old[np.arange(ngard_cells,ngard_cells+nx/size,1)],"g")
+#plt.title(rank)
 B_old=B0*B_old
 E_n=0*E_old
 B_n=0*B_old
@@ -96,7 +97,7 @@ K_mesh=2*math.pi/(local_size)*np.asarray(x)
 #K_mesh=2*1./Lx*math.pi*K_mesh
 j=complex(0,1)
 cx=2*math.sin(w*dt/2)
-cx=w*dt
+#cx=w*dt
 rank_back=(rank-1)%size
 rank_front=(rank+1)%size
 npa=ngard_cells+nx/size
@@ -112,34 +113,40 @@ for i in range(nsteps):
 	Btilde_n=-cx/w*rotE+Btilde_n
 	E_n=np.fft.ifft(Etilde_n)
 	B_n=np.fft.ifft(Btilde_n)
-	E_to_send_to_front=E_n[index_to_send_to_front]
-	B_to_send_to_front=B_n[index_to_send_to_front]
-	Buff_front=np.append(E_to_send_to_front,B_to_send_to_front)
-	E_to_send_to_back=E_n[index_to_send_to_back]
-	B_to_send_to_back=E_n[index_to_send_to_back]
-	Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
-	comm.Isend(Buff_front,rank_front,0)
-	comm.Isend(Buff_back,rank_back,1)
-	rcv_f=np.zeros(2*ngard_cells)
-	rcv_b=np.zeros(2*ngard_cells)
-	comm.Irecv(rcv_f,rank_front,0)
-	comm.Irecv(rcv_b,rank_back,1)
-	comm.Barrier()
-	for ind in range(ngard_cells):
-		E_n[ngard_cells+ind]+=rcv_b[ind]
-		B_n[ngard_cells+ind]+=rcv_b[ngard_cells+ind]
-		E_n[nx/size+ind]+=rcv_f[ind]
-		B_n[nx/size+ind]+=rcv_f[ngard_cells+ind]
-		E_n[ind]=0.
-		B_n[ind]=0.
-		E_n[nx/size+ngard_cells+ind]=0.
-		E_n[nx/size+ngard_cells+ind]=0.
-	Etilde_n=np.fft.fft(E_n)
-	Btilde_n=np.fft.fft(B_n)
+	if i%10==0:
+		E_to_send_to_front=E_n[index_to_send_to_front]
+		B_to_send_to_front=B_n[index_to_send_to_front]
+		Buff_front=np.append(E_to_send_to_front,B_to_send_to_front)
+		E_to_send_to_back=E_n[index_to_send_to_back]
+		B_to_send_to_back=E_n[index_to_send_to_back]
+		Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
+		comm.Isend(Buff_front,rank_front,0)
+		comm.Isend(Buff_back,rank_back,1)
+		rcv_f=np.zeros(2*ngard_cells)
+		rcv_b=np.zeros(2*ngard_cells)
+		comm.Irecv(rcv_f,rank_front,0)
+		comm.Irecv(rcv_b,rank_back,1)
+		comm.Barrier()
+		for ind in range(ngard_cells):
+			E_n[ngard_cells+ind]+=rcv_b[ind]
+			B_n[ngard_cells+ind]+=rcv_b[ngard_cells+ind]
+			E_n[nx/size+ind]+=rcv_f[ind]
+			B_n[nx/size+ind]+=rcv_f[ngard_cells+ind]
+			E_n[ind]=0.
+			B_n[ind]=0.
+			E_n[nx/size+ngard_cells+ind]=0.
+			E_n[nx/size+ngard_cells+ind]=0.
+		#Etilde_n=np.fft.fft(E_n)
+		#Btilde_n=np.fft.fft(B_n)
 	comm.Barrier()
 true_coord=np.arange(nx/size)+ngard_cells
 E_n=E_n[true_coord]
+#plt.plot(E_n)
+#plt.title(rank)
+#plt.grid(True)
+#plt.show()
 B_n=B_n[true_coord]
+
 data2=comm.gather(E_n,0)
 
 print"je suis le proc %d"%rank
@@ -152,7 +159,6 @@ print"je suis le proc %d"%rank
 #comm.Reduce(Final_loc_E,Final_glob_E,op=MPI.SUM,root=0)
 if rank==0:
 	E_field=np.zeros(nx,dtype=complex)
-print"je suis ici  le proc %d"%rank
 comm.Barrier()
 
 if rank==0:
