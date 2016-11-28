@@ -25,13 +25,13 @@ c=1.
 Lx=1.
 nx=128
 dx=Lx/nx
-nsteps=150
+nsteps=1500
 
 dt= 2.652582384864922e-04
 cfl=c*dt/dx
 print"cfl= %f "%cfl
 X=np.arange(nx)*Lx*dx
-mode=7
+mode=6.2
 w=2*math.pi*c*mode/Lx
 k=w/c
 E0=100.

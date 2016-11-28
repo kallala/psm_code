@@ -24,8 +24,8 @@ def prod_scalaire(k,E,direction):
 c=3*math.pow(10,8)
 c=1.
 Lx=1.
-nx=1024
-ngard_cells=128
+nx=512
+ngard_cells=8
 dx=Lx/nx
 nsteps=1200
 local_coord=np.zeros(nx/(size))
@@ -61,7 +61,7 @@ B_old=0*E_old
 #		Tf1[i,j]=1./nx*cmath.exp(complex(0,2*math.pi*i*j/float(nx)))
 #Tf=np.asmatrix(Tf)
 #Tf1=np.asmatrix(Tf1)
-for i in range(-ngard_cells,ngard_cells+nx/size,1):
+for i in range(ngard_cells,ngard_cells+nx/size,1):
 	E_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
@@ -105,7 +105,7 @@ index_to_send_to_back=np.arange(ngard_cells)
 index_to_send_to_front=np.arange(nx/size+ngard_cells,nx/size+2*ngard_cells,1)
 
 for i in range(nsteps):
-	if i%1000==0:
+	if i%1==0:
 		print "i= %d " %i
 	rotB=j*prod_scalaire(K_mesh,Btilde_n,2)
 	Etilde_n=cx/w*(c*c)*rotB+Etilde_n
@@ -113,19 +113,37 @@ for i in range(nsteps):
 	Btilde_n=-cx/w*rotE+Btilde_n
 	E_n=np.fft.ifft(Etilde_n)
 	B_n=np.fft.ifft(Btilde_n)
-	if i%10==0:
+	comm.Barrier()
+	if i%1==0:
 		E_to_send_to_front=E_n[index_to_send_to_front]
 		B_to_send_to_front=B_n[index_to_send_to_front]
 		Buff_front=np.append(E_to_send_to_front,B_to_send_to_front)
 		E_to_send_to_back=E_n[index_to_send_to_back]
 		B_to_send_to_back=E_n[index_to_send_to_back]
 		Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
-		comm.Isend(Buff_front,rank_front,0)
-		comm.Isend(Buff_back,rank_back,1)
-		rcv_f=np.zeros(2*ngard_cells)
-		rcv_b=np.zeros(2*ngard_cells)
-		comm.Irecv(rcv_f,rank_front,0)
-		comm.Irecv(rcv_b,rank_back,1)
+		print"size=%d"%Buff_back.size	
+		rcv_f=np.empty(2*ngard_cells)
+                rcv_b=np.empty(2*ngard_cells)
+		print"arrive ici %d"%rank
+			
+		comm.Send(Buff_front,rank_front,0)
+		plt.plot(Buff_front,"r")
+		plt.title(rank)
+		plt.show()
+		print"step %d"%rank
+
+		comm.Barrier()
+		print"depasse barriere %d %d"%(rank,rank_back)
+	 	rcv_b=comm.Recv(rank_back,0)
+		plt.plot(rcv_b)
+		plt.title(rank)
+		plt.show()
+		print"premier rcv %d"%rank	
+		comm.Barrier()
+		comm.Send(Buff_back,rank_back,1)
+		comm.Barrier
+		comm.Recv(rcv_f,rank_front,0)
+		
 		comm.Barrier()
 		for ind in range(ngard_cells):
 			E_n[ngard_cells+ind]+=rcv_b[ind]
@@ -136,15 +154,15 @@ for i in range(nsteps):
 			B_n[ind]=0.
 			E_n[nx/size+ngard_cells+ind]=0.
 			E_n[nx/size+ngard_cells+ind]=0.
-		#Etilde_n=np.fft.fft(E_n)
-		#Btilde_n=np.fft.fft(B_n)
+		Etilde_n=np.fft.fft(E_n)
+		Btilde_n=np.fft.fft(B_n)
 	comm.Barrier()
 true_coord=np.arange(nx/size)+ngard_cells
 E_n=E_n[true_coord]
-#plt.plot(E_n)
-#plt.title(rank)
-#plt.grid(True)
-#plt.show()
+plt.plot(E_n)
+plt.title(rank)
+plt.grid(True)
+plt.show()
 B_n=B_n[true_coord]
 
 data2=comm.gather(E_n,0)
