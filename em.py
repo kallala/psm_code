@@ -122,8 +122,8 @@ for i in range(nsteps):
 		B_to_send_to_back=E_n[index_to_send_to_back]
 		Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
 		print"size=%d"%Buff_back.size	
-		rcv_f=np.empty(2*ngard_cells)
-                rcv_b=np.empty(2*ngard_cells)
+		rcv_f=np.empty(2*ngard_cells,dtype=complex)
+                rcv_b=np.empty(2*ngard_cells,dtype=complex)
 		print"arrive ici %d"%rank
 			
 		comm.Send(Buff_front,rank_front,0)
@@ -134,14 +134,16 @@ for i in range(nsteps):
 
 		comm.Barrier()
 		print"depasse barriere %d %d"%(rank,rank_back)
-	 	rcv_b=comm.Recv(rank_back,0)
+	 	comm.Recv(rcv_b,rank_back,0)
 		plt.plot(rcv_b)
 		plt.title(rank)
 		plt.show()
 		print"premier rcv %d"%rank	
 		comm.Barrier()
-		comm.Send(Buff_back,rank_back,1)
-		comm.Barrier
+		print "depasse 2eme barr %d"%rank
+		comm.Send(Buff_back,rank_back,0)
+		
+		comm.Barrier()
 		comm.Recv(rcv_f,rank_front,0)
 		
 		comm.Barrier()
