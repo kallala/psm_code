@@ -25,7 +25,7 @@ c=3*math.pow(10,8)
 c=1.
 Lx=1.
 nx=512
-ngard_cells=8
+ngard_cells=32
 dx=Lx/nx
 nsteps=1200
 local_coord=np.zeros(nx/(size))
@@ -66,6 +66,9 @@ for i in range(ngard_cells,ngard_cells+nx/size,1):
 	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
 E_old=E0*E_old
+plt.plot(E_old)
+plt.title(rank)
+plt.show()
 #plt.plot(E_old[np.arange(ngard_cells,ngard_cells+nx/size,1)],"g")
 #plt.title(rank)
 B_old=B0*B_old
@@ -102,7 +105,7 @@ rank_back=(rank-1)%size
 rank_front=(rank+1)%size
 npa=ngard_cells+nx/size
 index_to_send_to_back=np.arange(ngard_cells)
-index_to_send_to_front=np.arange(nx/size+ngard_cells,nx/size+2*ngard_cells,1)
+index_to_send_to_front=np.arange(ngard_cells)+ngard_cells+nx/size
 
 for i in range(nsteps):
 	if i%1==0:
@@ -119,33 +122,23 @@ for i in range(nsteps):
 		B_to_send_to_front=B_n[index_to_send_to_front]
 		Buff_front=np.append(E_to_send_to_front,B_to_send_to_front)
 		E_to_send_to_back=E_n[index_to_send_to_back]
-		B_to_send_to_back=E_n[index_to_send_to_back]
+		B_to_send_to_back=B_n[index_to_send_to_back]
 		Buff_back=np.append(E_to_send_to_back,B_to_send_to_back)
-		print"size=%d"%Buff_back.size	
 		rcv_f=np.empty(2*ngard_cells,dtype=complex)
                 rcv_b=np.empty(2*ngard_cells,dtype=complex)
-		print"arrive ici %d"%rank
-			
 		comm.Send(Buff_front,rank_front,0)
-		plt.plot(Buff_front,"r")
-		plt.title(rank)
-		plt.show()
-		print"step %d"%rank
-
+	#	plt.plot(Buff_front,"r")
+	#	plt.title(rank)
+	#	plt.show()
 		comm.Barrier()
-		print"depasse barriere %d %d"%(rank,rank_back)
 	 	comm.Recv(rcv_b,rank_back,0)
-		plt.plot(rcv_b)
-		plt.title(rank)
-		plt.show()
-		print"premier rcv %d"%rank	
+	#	plt.plot(rcv_b)
+	#	plt.title(rank)
+	#	plt.show()
 		comm.Barrier()
-		print "depasse 2eme barr %d"%rank
 		comm.Send(Buff_back,rank_back,0)
-		
 		comm.Barrier()
 		comm.Recv(rcv_f,rank_front,0)
-		
 		comm.Barrier()
 		for ind in range(ngard_cells):
 			E_n[ngard_cells+ind]+=rcv_b[ind]
@@ -155,7 +148,10 @@ for i in range(nsteps):
 			E_n[ind]=0.
 			B_n[ind]=0.
 			E_n[nx/size+ngard_cells+ind]=0.
-			E_n[nx/size+ngard_cells+ind]=0.
+			B_n[nx/size+ngard_cells+ind]=0.
+		#plt.plot(E_n)
+		#plt.grid(True)
+		#plt.show()
 		Etilde_n=np.fft.fft(E_n)
 		Btilde_n=np.fft.fft(B_n)
 	comm.Barrier()
