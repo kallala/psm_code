@@ -24,8 +24,8 @@ def prod_scalaire(k,E,direction):
 c=3*math.pow(10,8)
 c=1.
 Lx=1.
-nx=512
-ngard_cells=32
+nx=1024
+ngard_cells=16
 dx=Lx/nx
 nsteps=1200
 local_coord=np.zeros(nx/(size))
@@ -37,19 +37,22 @@ p=(rank*nx/size-ngard_cells)%nx
 q=((rank+1)*nx/size+ngard_cells)%nx
 local_coord=np.arange(p,q+nx,1)%nx
 local_coord=dx*local_coord
+if size==1:
+	local_coord=np.arange(-ngard_cells,ngard_cells+nx,1)*dx
 #for i in range(local_coord.shape[0]):
 #	print "je suis le process %d et coord i = %f"%(rank,local_coord[i])
 
-dt= 2.652582384864922e-05
+dt= 5*2.652582384864922e-05
 if (rank==0):
 	cfl=c*dt/dx
 	print"cfl= %f "%cfl
 X=np.arange(nx)*Lx*dx
-mode=3
+mode=4
 w=2*math.pi*c*mode/Lx
 k=w/c
 E0=100.
 B0=-E0/c
+print" loc tot %d"%nx_loc_tot
 E_old=np.zeros(nx_loc_tot,dtype=complex)
 B_old=0*E_old
 #Tf and Tf-1 matrix
@@ -66,9 +69,9 @@ for i in range(ngard_cells,ngard_cells+nx/size,1):
 	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
 E_old=E0*E_old
-plt.plot(E_old)
-plt.title(rank)
-plt.show()
+#plt.plot(E_old)
+#plt.title(rank)
+#plt.show()
 #plt.plot(E_old[np.arange(ngard_cells,ngard_cells+nx/size,1)],"g")
 #plt.title(rank)
 B_old=B0*B_old
@@ -108,7 +111,7 @@ index_to_send_to_back=np.arange(ngard_cells)
 index_to_send_to_front=np.arange(ngard_cells)+ngard_cells+nx/size
 
 for i in range(nsteps):
-	if i%1==0:
+	if i%10==0:
 		print "i= %d " %i
 	rotB=j*prod_scalaire(K_mesh,Btilde_n,2)
 	Etilde_n=cx/w*(c*c)*rotB+Etilde_n
@@ -157,12 +160,10 @@ for i in range(nsteps):
 	comm.Barrier()
 true_coord=np.arange(nx/size)+ngard_cells
 E_n=E_n[true_coord]
-plt.plot(E_n)
-plt.title(rank)
-plt.grid(True)
-plt.show()
 B_n=B_n[true_coord]
-
+plt.plot(E_n,"r")
+plt.title(rank)
+plt.show()
 data2=comm.gather(E_n,0)
 
 print"je suis le proc %d"%rank
@@ -206,7 +207,9 @@ if rank ==0:
 	plt.grid(True)
 	plt.plot(E_field,'r')
 	plt.show()
-
+	print "phase finale %f"%(w*dt*nsteps)
+	print "w=%f"%w
+	print "dt=%f"%dt
 #resolution des eq de maxwell en 1D 
 #l onde se propage suivant x 
 #E est porte par y 

@@ -23,15 +23,15 @@ def prod_scalaire(k,E,direction,nx):
 c=3*math.pow(10,8)
 c=1.
 Lx=1.
-nx=128
+nx=1024
 dx=Lx/nx
-nsteps=1500
+nsteps=1200
 
-dt= 2.652582384864922e-04
+dt= 5*2.652582384864922e-05
 cfl=c*dt/dx
 print"cfl= %f "%cfl
 X=np.arange(nx)*Lx*dx
-mode=6.2
+mode=4.
 w=2*math.pi*c*mode/Lx
 k=w/c
 E0=100.
@@ -52,9 +52,6 @@ for i in range(nx):
 	B_old[i]=cmath.exp(complex(0,-k*X[i]))
 
 E_old=E0*E_old
-S1=E_old
-S=np.fft.fft(S1)
-
 B_old=B0*B_old
 E_n=0*E_old
 B_n=0*B_old
@@ -85,7 +82,7 @@ j=complex(0,1)
 cx=2*math.sin(w*dt/2)
 cx=w*dt
 for i in range(nsteps):
-	if i%1000==0:
+	if i%50==0:
 		print "i= %d " %i
 	rotB=j*prod_scalaire(K_mesh,Btilde_old,2,nx)
 	Etilde_n=cx/w*(c*c)*rotB+Etilde_old
