@@ -27,7 +27,7 @@ Lx=1.
 nx=512
 ngard_cells=32
 dx=Lx/nx
-nsteps=1200
+nsteps=12000
 local_coord=np.zeros(nx/(size))
 nx_loc_central=nx/size
 nx_loc_tot=nx/size+2*ngard_cells
@@ -51,7 +51,7 @@ k=w/c
 E0=100.
 B0=-E0/c
 E_old=np.zeros(nx_loc_tot,dtype=complex)
-B_old=0*E_old
+B_old=0.*E_old
 #Tf and Tf-1 matrix
 #Tf=np.zeros((nx,nx),dtype=complex)
 #Tf1=np.zeros((nx,nx),dtype=complex)
@@ -66,9 +66,9 @@ for i in range(ngard_cells,ngard_cells+nx/size,1):
 	B_old[i]=cmath.exp(complex(0,-k*(local_coord[i])))
 
 E_old=E0*E_old
-plt.plot(E_old)
-plt.title(rank)
-plt.show()
+#plt.plot(E_old)
+#plt.title(rank)
+#plt.show()
 #plt.plot(E_old[np.arange(ngard_cells,ngard_cells+nx/size,1)],"g")
 #plt.title(rank)
 B_old=B0*B_old
@@ -94,6 +94,7 @@ x.append(0)
 x.extend(rx)
 local_size=Lx*(1./size+2.*ngard_cells/nx)
 K_mesh=2*math.pi/(local_size)*np.asarray(x)
+
 
 #K_mesh=np.arange(nx)
 #K_mesh=np.arange(-nx/2,nx/2,1)
