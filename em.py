@@ -20,13 +20,18 @@ def prod_vect(k,E,direction):
 			a[i]=-k[i]*E[i]
 	return(a)
 
-c=1.                                          #Speed of light
-Lx=1.                                         #Domain size
-nx=512                                        #Number of cells = number of points because of periodic boundaries
-ngard_cells=32
-dx=Lx/nx
-nsteps=1200                                   #Number of iterations
-nx_loc_tot=nx/size+2*ngard_cells              #Number of cells per MPI domain
+# User defined parameters ##################
+
+c  = 1.                                           #Speed of light
+Lx = 1.                                           #Domain size
+nx = 512                                          #Number of cells = number of points because of periodic boundaries
+ngard_cells = 32                                  #Number of guard cell
+dx = Lx/nx                                        #Cell size
+dt = 2.652582384864922e-05                        #Time step
+nsteps = 1200                                     #Number of iterations
+nx_loc_tot = nx/size + 2*ngard_cells              #Number of cells per MPI domain
+
+########################################################################################################
 
 print "This program works only if the number of proc ", size, " divides the number of cells ", size
 
@@ -35,7 +40,6 @@ local_coord += rank*nx/size - ngard_cells     #nx/size non guard points per MPI 
 local_coord = (local_coord % nx) * dx         #periodic boundaries and account for individual cell size dx. 
 
 
-dt= 2.652582384864922e-05
 if (rank==0):
 	cfl=c*dt/dx
 	print"cfl= %f "%cfl
