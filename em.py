@@ -8,6 +8,7 @@ rank = MPI.COMM_WORLD.Get_rank()
 name = MPI.Get_processor_name()
 comm = MPI.COMM_WORLD
 
+
 def prod_vect(k,E,direction):
 	nx=E.shape[0]
 	a=0*E
@@ -18,22 +19,21 @@ def prod_vect(k,E,direction):
 		for i in range(nx):
 			a[i]=-k[i]*E[i]
 	return(a)
-c=3*math.pow(10,8)
-c=1.
-Lx=1.
-nx=512
+
+c=1.                                          #Speed of light
+Lx=1.                                         #Domain size
+nx=512                                        #Number of cells = number of points because of periodic boundaries
 ngard_cells=32
 dx=Lx/nx
-nsteps=1200
-local_coord=np.zeros(nx/(size))
-nx_loc_central=nx/size
-nx_loc_tot=nx/size+2*ngard_cells
+nsteps=1200                                   #Number of iterations
+nx_loc_tot=nx/size+2*ngard_cells              #Number of cells per MPI domain
 
-a_loc=max(0,(rank*nx/size-ngard_cells)*dx)
-p=(rank*nx/size-ngard_cells)%nx
-q=((rank+1)*nx/size+ngard_cells)%nx
-local_coord=np.arange(p,q+nx,1)%nx
-local_coord=dx*local_coord
+print "This program works only if the number of proc ", size, " divides the number of cells ", size
+
+local_coord = scipy.arange(nx_loc_tot)        #Coordinates of the nx_loc_tot local MPI points.
+local_coord += rank*nx/size - ngard_cells     #nx/size non guard points per MPI and the first non guard cell is located at x=0.
+local_coord = (local_coord % nx) * dx         #periodic boundaries and account for individual cell size dx. 
+
 
 dt= 2.652582384864922e-05
 if (rank==0):
@@ -138,7 +138,6 @@ B_n=B_n[true_coord]
 
 data2=comm.gather(E_n,0)
 
-print"je suis le proc %d"%rank
 if rank==0:
 	E_field=np.zeros(nx,dtype=complex)
 comm.Barrier()
